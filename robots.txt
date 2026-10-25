@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: https://paperclipgo.com/sitemap.xml
+# AI Discovery Specification
+LLMs-Txt: https://paperclipgo.com/llms.txt

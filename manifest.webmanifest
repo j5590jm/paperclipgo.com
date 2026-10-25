@@ -1,0 +1,22 @@
+{
+  "name": "PaperclipGo \u2014 Private Crypto Portfolio & Scenario Calculator",
+  "short_name": "PaperclipGo",
+  "description": "Free, 100% client-side cryptocurrency portfolio tracker, DCA planner, and what-if market scenario simulator.",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#090d16",
+  "theme_color": "#3b82f6",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}

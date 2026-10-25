@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PaperclipGo — Crypto Portfolio P&amp;L &amp; Market Scenario Simulator</title>
+  <meta name="description" content="Free, privacy-focused cryptocurrency portfolio tracker, DCA planner, and what-if market scenario calculator. No login, 100% private in your browser.">
+  <meta name="referrer" content="no-referrer">
+  <link rel="canonical" href="https://paperclipgo.com/">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="alternate icon" href="favicon.ico">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#090d16">
+
+  <!-- Open Graph & Social Card Tags -->
+  <meta property="og:title" content="PaperclipGo — Know What Your Crypto Is Actually Worth">
+  <meta property="og:description" content="100% client-side crypto portfolio cost-basis tracker, historical backtester, and what-if market scenario simulator. Zero login, zero cookies.">
+  <meta property="og:url" content="https://paperclipgo.com/">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="PaperclipGo — Private Crypto Portfolio &amp; Scenario Simulator">
+  <meta name="twitter:description" content="Track cost basis, unrealized P&amp;L, and stress-test market swings from -50% to +100% right in your browser.">
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="site-wrapper">
+    <!-- HEADER BAR (100% Ad-Free Above the Fold) -->
+    <header class="site-header">
+      <div class="brand-group">
+        <img src="favicon.svg" alt="PaperclipGo Logo" class="brand-logo" width="34" height="34">
+        <a href="index.html" class="brand-name">PaperclipGo</a>
+        <span class="privacy-pill">100% Local-First</span>
+      </div>
+
+      <div class="header-controls">
+        <div class="sentiment-badge" aria-live="polite">
+          <span class="sentiment-dot"></span>
+          <span id="sentiment-text">Sentiment: 58 (Greed)</span>
+        </div>
+
+        <label for="fiat-switcher" style="display:none;">Currency</label>
+        <select id="fiat-switcher" class="fiat-select" aria-label="Select display currency">
+          <option value="usd">USD ($)</option>
+          <option value="eur">EUR (€)</option>
+          <option value="gbp">GBP (£)</option>
+          <option value="cad">CAD (C$)</option>
+          <option value="aud">AUD (A$)</option>
+        </select>
+
+        <button type="button" id="btn-open-swap" class="btn btn-emerald">⚡ Instant Swap</button>
+      </div>
+    </header>
+
+    <noscript>
+      <div class="card" style="margin-bottom:1.5rem;border-color:#f43f5e;">
+        <strong>JavaScript Required for Local Privacy:</strong> PaperclipGo runs every calculation inside your browser so your holdings are never sent to a server. Please enable JavaScript to use the calculator.
+      </div>
+    </noscript>
+
+    <!-- HERO -->
+    <section class="hero">
+      <h1>Know what your crypto is actually worth.</h1>
+      <p>Track your portfolio's current value, exact cost basis, and unrealized gain or loss — then simulate what happens to your net worth when the market moves.</p>
+    </section>
+
+    <!-- KPI RIBBON -->
+    <section class="kpi-grid" aria-live="polite">
+      <div class="kpi-card">
+        <div class="kpi-label">Current Portfolio Value</div>
+        <div class="kpi-value" id="kpi-current-val">$0.00</div>
+        <div class="kpi-sub">Feed: <span id="price-feed-status">Connecting...</span></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Total Cost Basis (Paid)</div>
+        <div class="kpi-value" id="kpi-cost-basis">$0.00</div>
+        <div class="kpi-sub">Stored only in browser localStorage</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Unrealized Gain / Loss</div>
+        <div class="kpi-value pos" id="kpi-unrealized-pnl">+$0.00</div>
+        <div class="kpi-sub" id="kpi-pnl-pct">+0.00% vs. cost basis</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Simulated Scenario Net Worth</div>
+        <div class="kpi-value" id="kpi-scenario-val">$0.00</div>
+        <div class="kpi-sub" id="kpi-scenario-sub">At 0% market move</div>
+      </div>
+    </section>
+
+    <!-- NAVIGATION TABS -->
+    <nav class="tab-bar" aria-label="Calculator Modes">
+      <button type="button" class="tab-btn active" data-tab="portfolio">1. Portfolio &amp; What-If Simulator</button>
+      <button type="button" class="tab-btn" data-tab="dca">2. DCA Planner</button>
+      <button type="button" class="tab-btn" data-tab="backtest">3. Historical Entry Backtester</button>
+      <button type="button" class="tab-btn" data-tab="guides">4. 40-Coin SEO Guides</button>
+    </nav>
+
+    <!-- TAB 1: PORTFOLIO & WHAT-IF SIMULATOR -->
+    <div id="panel-portfolio" class="tab-panel active">
+      <div class="workspace-grid">
+        <!-- Left Column: Holdings & FIFO Input -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Your Local Portfolio Holdings</h2>
+            <div style="display:flex;gap:0.5rem;">
+              <button type="button" id="btn-export-csv" class="btn btn-secondary" style="padding:0.4rem 0.75rem;font-size:0.8rem;">⬇ Export Tax CSV</button>
+              <button type="button" id="btn-share-card" class="btn btn-secondary" style="padding:0.4rem 0.75rem;font-size:0.8rem;">📸 Share Scenario Card</button>
+            </div>
+          </div>
+
+          <form id="add-holding-form" class="add-row-form">
+            <select id="add-coin-select" aria-label="Select cryptocurrency"></select>
+            <input type="number" id="add-qty" step="any" min="0.00000001" placeholder="Quantity owned" required aria-label="Quantity owned">
+            <input type="number" id="add-paid" step="any" min="0" placeholder="Total USD paid" required aria-label="Total USD paid">
+            <button type="submit" class="btn">+ Add Coin</button>
+          </form>
+
+          <div style="overflow-x:auto;">
+            <table class="holdings-table">
+              <thead>
+                <tr>
+                  <th>Asset</th>
+                  <th>Qty</th>
+                  <th>Avg Cost</th>
+                  <th>Live Price</th>
+                  <th>Value</th>
+                  <th>Unrealized P&amp;L</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="holdings-tbody"></tbody>
+            </table>
+          </div>
+
+          <div id="contextual-tip-slot" aria-live="polite"></div>
+        </div>
+
+        <!-- Right Column: What-If Scenario Stress-Tester & Canvas Chart -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">"What-If" Market Stress-Tester</h2>
+            <strong id="scenario-slider-label" style="color:var(--accent-blue);font-size:1.1rem;">0%</strong>
+          </div>
+
+          <p style="font-size:0.86rem;color:var(--text-muted);">
+            Drag the slider or tap a preset to simulate an instant market swing across your holdings:
+          </p>
+
+          <div class="slider-wrap">
+            <input type="range" id="scenario-slider" class="scenario-slider" min="-50" max="100" step="5" value="0" aria-label="Market scenario percentage">
+            <div class="preset-row">
+              <button type="button" class="preset-chip" data-preset="-50">-50%</button>
+              <button type="button" class="preset-chip" data-preset="-25">-25%</button>
+              <button type="button" class="preset-chip" data-preset="-10">-10%</button>
+              <button type="button" class="preset-chip active" data-preset="0">0% (Now)</button>
+              <button type="button" class="preset-chip" data-preset="10">+10%</button>
+              <button type="button" class="preset-chip" data-preset="25">+25%</button>
+              <button type="button" class="preset-chip" data-preset="50">+50%</button>
+              <button type="button" class="preset-chip" data-preset="100">+100%</button>
+            </div>
+          </div>
+
+          <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.84rem;color:var(--text-muted);margin:0.85rem 0;cursor:pointer;">
+            <input type="checkbox" id="toggle-gold-anchor" style="width:auto;">
+            Compare against Physical Gold (PAXG) + 4.5% US Treasury Anchor
+          </label>
+
+          <canvas id="portfolio-canvas" width="440" height="220" style="width:100%;height:auto;border-radius:8px;border:1px solid var(--border-subtle);"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: DCA PLANNER -->
+    <div id="panel-dca" class="tab-panel">
+      <div class="card">
+        <h2 class="card-title" style="margin-bottom:0.5rem;">Recurring Dollar-Cost Averaging (DCA) Simulator</h2>
+        <p style="font-size:0.9rem;color:var(--text-muted);margin-bottom:1rem;">
+          Model how consistent weekly accumulation performs over time without timing the market top or bottom.
+        </p>
+        <div class="add-row-form">
+          <div>
+            <label style="font-size:0.78rem;color:var(--text-muted);">Select Asset</label>
+            <select id="dca-coin"></select>
+          </div>
+          <div>
+            <label style="font-size:0.78rem;color:var(--text-muted);">Weekly Contribution (USD)</label>
+            <input type="number" id="dca-amount" value="100" min="1">
+          </div>
+          <div>
+            <label style="font-size:0.78rem;color:var(--text-muted);">Duration (Months)</label>
+            <input type="number" id="dca-months" value="12" min="1" max="120">
+          </div>
+          <div>
+            <label style="font-size:0.78rem;color:var(--text-muted);">Assumed Annual Growth (%)</label>
+            <input type="number" id="dca-growth" value="25" min="-80" max="300">
+          </div>
+        </div>
+        <button type="button" id="btn-run-dca" class="btn">Calculate DCA Projection</button>
+        <div id="dca-output" aria-live="polite"></div>
+      </div>
+    </div>
+
+    <!-- TAB 3: HISTORICAL ENTRY BACKTESTER -->
+    <div id="panel-backtest" class="tab-panel">
+      <div class="card">
+        <h2 class="card-title" style="margin-bottom:0.5rem;">"What-If I Invested" Lump-Sum Backtester</h2>
+        <p style="font-size:0.9rem;color:var(--text-muted);margin-bottom:1rem;">
+          Test what a past lump-sum purchase at any historical entry price is worth at today's live market price.
+        </p>
+        <div class="add-row-form">
+          <div>
+            <label style="font-size:0.78rem;color:var(--text-muted);">Select Asset</label>
+            <select id="bt-coin"></select>
+          </div>
+          <div>
+            <label style="font-size:0.78rem;color:var(--text-muted);">Amount Invested (USD)</label>
+            <input type="number" id="bt-amount" value="1000" min="1">
+          </div>
+          <div>
+            <label style="font-size:0.78rem;color:var(--text-muted);">Historical Entry Price per Coin (USD)</label>
+            <input type="number" id="bt-entry-price" value="25000" step="any" min="0.0000001">
+          </div>
+          <div style="display:flex;align-items:flex-end;">
+            <button type="button" id="btn-run-bt" class="btn" style="width:100%;">Run Backtest</button>
+          </div>
+        </div>
+        <div id="bt-output" aria-live="polite"></div>
+      </div>
+    </div>
+
+    <!-- TAB 4: 40-COIN PROGRAMMATIC SEO DIRECTORY -->
+    <div id="panel-guides" class="tab-panel">
+      <div class="card">
+        <h2 class="card-title" style="margin-bottom:0.5rem;">40-Coin Calculator Guides &amp; Direct Deep-Links</h2>
+        <p style="font-size:0.9rem;color:var(--text-muted);margin-bottom:1rem;">
+          Every asset in the PaperclipGo universe has a dedicated, standalone calculator guide with transparent math formulas:
+        </p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0.6rem;font-size:0.86rem;">
+          <a href="guides/bitcoin-dca-calculator.html">Bitcoin DCA Guide</a>
+          <a href="guides/crypto-profit-calculator.html">Crypto Profit Guide</a>
+          <a href="guides/what-if-i-invested-calculator.html">What-If Scenario Guide</a>
+          <a href="guides/bitcoin-calculator.html">Bitcoin (BTC) Calculator</a>
+          <a href="guides/ethereum-calculator.html">Ethereum (ETH) Calculator</a>
+          <a href="guides/solana-calculator.html">Solana (SOL) Calculator</a>
+          <a href="guides/xrp-calculator.html">XRP Calculator</a>
+          <a href="guides/bnb-calculator.html">BNB Calculator</a>
+          <a href="guides/dogecoin-calculator.html">Dogecoin (DOGE) Calculator</a>
+          <a href="guides/cardano-calculator.html">Cardano (ADA) Calculator</a>
+          <a href="guides/avalanche-calculator.html">Avalanche (AVAX) Calculator</a>
+          <a href="guides/chainlink-calculator.html">Chainlink (LINK) Calculator</a>
+          <a href="guides/sui-calculator.html">Sui (SUI) Calculator</a>
+          <a href="guides/kaspa-calculator.html">Kaspa (KAS) Calculator</a>
+          <a href="guides/monero-calculator.html">Monero (XMR) Calculator</a>
+          <a href="guides/pax-gold-calculator.html">PAX Gold (PAXG) NAV Guide</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- RADICAL TRANSPARENCY: SHOW THE MATH & FORMULAS -->
+    <details class="card" style="margin-bottom:1.5rem;cursor:pointer;">
+      <summary style="font-weight:700;font-size:1rem;">🔍 Show the Math &amp; Formulas (100% Auditable Client-Side Equations)</summary>
+      <div style="margin-top:1rem;font-size:0.88rem;color:var(--text-muted);">
+        <p style="margin-bottom:0.75rem;">
+          PaperclipGo never hides its calculations behind a black-box server. You can verify every output directly against these formulas:
+        </p>
+        <pre style="background:var(--bg-input);padding:1rem;border-radius:8px;overflow-x:auto;color:var(--text-main);font-size:0.84rem;">
+1. Average Cost per Coin   = Total_USD_Paid / Quantity_Owned
+2. Current Position Value  = Quantity_Owned * Live_Price_USD
+3. Unrealized P&amp;L ($)      = Current_Position_Value - Total_USD_Paid
+4. Unrealized Return (%)   = ((Current_Position_Value - Total_USD_Paid) / Total_USD_Paid) * 100
+5. Scenario Value (Δ%)     = Current_Position_Value * (1 + (Scenario_Slider_Pct / 100))
+6. Weekly DCA Compounding  = Σ [ (Prior_Balance + Weekly_Contribution) * (1 + (APR / 52)) ]</pre>
+      </div>
+    </details>
+
+    <!-- COOKIELESS INLINE AD SLOT (AADS UNIT 2459805) -->
+    <div style="margin:1.5rem 0;text-align:center;">
+      <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);margin-bottom:0.35rem;">
+        Privacy-Safe Sponsor (Zero Cookies or Tracking Scripts)
+      </div>
+      <div id="ad-slot-inline"></div>
+    </div>
+
+    <!-- RECOMMENDED PRIVACY & SELF-CUSTODY TOOLS -->
+    <section class="card" style="margin-bottom:1.5rem;">
+      <div class="card-header">
+        <h2 class="card-title">Self-Custody, No-KYC Swap &amp; Tax Tools</h2>
+        <button type="button" id="btn-open-embed" class="btn btn-secondary" style="font-size:0.78rem;padding:0.35rem 0.7rem;">&lt;/&gt; Embed This Calculator on Your Site</button>
+      </div>
+      <div id="partner-cards-grid" class="partner-grid"></div>
+    </section>
+
+    <!-- COOKIELESS FOOTER AD SLOT (AADS UNIT 2459805) -->
+    <div style="margin:1.5rem 0;text-align:center;">
+      <div id="ad-slot-footer"></div>
+    </div>
+
+    <!-- TRUST FOOTER -->
+    <footer class="site-footer">
+      <div>
+        <strong>PaperclipGo v3.0</strong> — Clarity, Privacy &amp; Radical Math Transparency.<br>
+        100% client-side computation in <code>localStorage</code>. Zero accounts, zero cookies, zero tracking pixels.
+      </div>
+      <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+        <a href="about.html">About</a>
+        <a href="faq.html">FAQ</a>
+        <a href="privacy.html">Privacy Policy</a>
+        <a href="terms.html">Terms</a>
+        <a href="sitemap.xml">Sitemap</a>
+        <a href="llms.txt">LLMs.txt</a>
+      </div>
+    </footer>
+  </div>
+
+  <!-- MODAL 1: CLICK-TO-LOAD CHANGENOW SWAP WIDGET -->
+  <div id="swap-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="swap-modal-title">
+    <div class="modal-content">
+      <div class="card-header">
+        <h3 id="swap-modal-title" class="card-title">⚡ Non-Custodial Instant Swap (ChangeNOW)</h3>
+        <button type="button" id="btn-close-swap" class="preset-chip">✕ Close</button>
+      </div>
+      <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.75rem;">
+        Loaded on demand so zero third-party scripts run until you click. Swap straight to your self-custody wallet:
+      </p>
+      <div id="swap-iframe-container"></div>
+      <div style="margin-top:0.75rem;text-align:right;font-size:0.8rem;">
+        <a href="https://changenow.app.link/referral?link_id=1d9d2f522090a1" target="_blank" rel="noopener noreferrer">Open directly on ChangeNOW.io &rarr;</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: B2B WHITE-LABEL EMBED GENERATOR -->
+  <div id="embed-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="embed-modal-title">
+    <div class="modal-content">
+      <div class="card-header">
+        <h3 id="embed-modal-title" class="card-title">&lt;/&gt; Embed PaperclipGo on Your Blog or Substack</h3>
+        <button type="button" id="btn-close-embed" class="preset-chip">✕ Close</button>
+      </div>
+      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.75rem;">
+        Copy and paste this snippet to embed the zero-tracking PaperclipGo calculator directly on your website:
+      </p>
+      <textarea readonly style="width:100%;height:110px;background:var(--bg-input);color:var(--text-main);border:1px solid var(--border-subtle);border-radius:6px;padding:0.65rem;font-family:monospace;font-size:0.8rem;">&lt;iframe src="https://paperclipgo.com/?embed=1" width="100%" height="680" style="border:1px solid rgba(148,163,184,0.2);border-radius:12px;" loading="lazy" title="PaperclipGo Crypto Portfolio Calculator"&gt;&lt;/iframe&gt;&lt;p style="font-size:12px;text-align:right;"&gt;Powered by &lt;a href="https://paperclipgo.com" target="_blank" rel="noopener"&gt;PaperclipGo (100% Private Crypto Calculator)&lt;/a&gt;&lt;/p&gt;</textarea>
+    </div>
+  </div>
+
+  <script src="monetization.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
