@@ -152,6 +152,7 @@ a:hover {
   margin-bottom: 0.65rem;
   background: linear-gradient(135deg, #ffffff 0%, #93c5fd 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
