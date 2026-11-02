@@ -52,13 +52,19 @@ self.addEventListener('fetch', event => {
     ['script', 'style', 'image', 'font', 'manifest'].includes(event.request.destination);
   if (!isAppAsset || url.origin !== self.location.origin) return;
 
+  const isCalculatorNavigation = event.request.mode === 'navigate' &&
+    (url.pathname === '/' || url.pathname === '/index.html');
+  const cacheKey = isCalculatorNavigation
+    ? new URL('/index.html', self.location.origin).href
+    : event.request;
+
   event.respondWith((async () => {
     const cache = await caches.open(CACHE_NAME);
     let response;
     try {
-      response = await fetch(event.request);
+      response = await fetch(event.request, { cache: 'no-cache' });
     } catch {
-      const cached = await cache.match(event.request);
+      const cached = await cache.match(cacheKey);
       if (cached) return cached;
       if (event.request.mode === 'navigate') {
         return (await cache.match('/offline.html')) || Response.error();
@@ -66,8 +72,13 @@ self.addEventListener('fetch', event => {
       return new Response(null, { status: 503, statusText: 'Offline' });
     }
 
+    if (response.status >= 500) {
+      const cached = await cache.match(cacheKey);
+      if (cached) return cached;
+    }
+
     if (response.ok) {
-      event.waitUntil(cache.put(event.request, response.clone()).catch(error => {
+      event.waitUntil(cache.put(cacheKey, response.clone()).catch(error => {
         console.warn('Unable to update the offline cache:', error);
       }));
     }
