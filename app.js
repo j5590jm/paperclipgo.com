@@ -359,9 +359,9 @@
   function loadHoldings() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY_HOLDINGS);
-      if (raw) {
+      if (raw !== null) {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed)) {
           state.holdings = parsed;
           return;
         }
@@ -374,6 +374,7 @@
       { id: 'solana', qty: 15, paidUsd: 1950, date: '2026-06-01' },
       { id: 'pax-gold', qty: 0.5, paidUsd: 1250, date: '2026-07-20' }
     ];
+    saveHoldings();
   }
 
   function saveHoldings() {
