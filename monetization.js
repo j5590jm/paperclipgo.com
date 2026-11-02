@@ -42,7 +42,8 @@ window.PCG_MONETIZATION = {
     enabled: true,
     providerName: 'ChangeNOW (No-KYC Instant Swap)',
     linkId: '1d9d2f522090a1',
-    iframeUrl: 'https://changenow.io/embeds/exchange-widget/v2/widget.html?FAQ=true&amount=0.1&amountFiat=1500&backgroundColor=12161F&darkMode=true&from=btc&fromFiat=usd&horizontal=false&isFiat=false&lang=en-US&link_id=1d9d2f522090a1&locales=true&logo=false&primaryColor=3B82F6&to=eth&toFiat=eth&toTheMoon=true',
+    // No from/to pair so the user picks coins; amount defaults keep the rate estimate populated on load
+    iframeUrl: 'https://changenow.io/embeds/exchange-widget/v2/widget.html?FAQ=true&amount=1&amountFiat=100&backgroundColor=12161F&darkMode=true&fromFiat=usd&horizontal=false&isFiat=false&lang=en-US&link_id=1d9d2f522090a1&locales=true&logo=false&primaryColor=3B82F6&toFiat=eth&toTheMoon=true',
     fallbackUrl: 'https://changenow.app.link/referral?link_id=1d9d2f522090a1'
   },
 
