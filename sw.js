@@ -48,10 +48,29 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Cache-first for static app shell
-  event.respondWith(
-    caches.match(event.request).then(cached => {
-      return cached || fetch(event.request).catch(() => caches.match('/offline.html'));
-    })
-  );
+  const isAppAsset = event.request.mode === 'navigate' ||
+    ['script', 'style', 'image', 'font', 'manifest'].includes(event.request.destination);
+  if (!isAppAsset || url.origin !== self.location.origin) return;
+
+  event.respondWith((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    let response;
+    try {
+      response = await fetch(event.request);
+    } catch {
+      const cached = await cache.match(event.request);
+      if (cached) return cached;
+      if (event.request.mode === 'navigate') {
+        return (await cache.match('/offline.html')) || Response.error();
+      }
+      return new Response(null, { status: 503, statusText: 'Offline' });
+    }
+
+    if (response.ok) {
+      event.waitUntil(cache.put(event.request, response.clone()).catch(error => {
+        console.warn('Unable to update the offline cache:', error);
+      }));
+    }
+    return response;
+  })());
 });
