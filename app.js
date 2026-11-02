@@ -357,16 +357,23 @@
   });
 
   function loadHoldings() {
+    let raw;
     try {
-      const raw = localStorage.getItem(STORAGE_KEY_HOLDINGS);
-      if (raw !== null) {
+      raw = localStorage.getItem(STORAGE_KEY_HOLDINGS);
+    } catch (e) {
+      return;
+    }
+
+    if (raw !== null) {
+      try {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
           state.holdings = parsed;
-          return;
         }
-      }
-    } catch (e) {}
+      } catch (e) {}
+      return;
+    }
+
     // Default starter demo portfolio in localStorage
     state.holdings = [
       { id: 'bitcoin', qty: 0.15, paidUsd: 8250, date: '2026-01-15' },
